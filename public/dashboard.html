@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donor Dashboard | FoodBridge</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #2ecc71;
+            --light-bg: #f5f6fa;
+            --dark-text: #2c3e50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-bg);
+        }
+
+        .dashboard-container {
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background: var(--primary-color);
+            color: white;
+            padding: 2rem;
+            position: fixed;
+            height: 100%;
+            width: 250px;
+            top: 0;
+            left: -250px;
+            transition: left 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .branding {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover {
+            background: var(--secondary-color);
+        }
+
+        .logout-btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #27ae60;
+        }
+
+        .main-content {
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark-text);
+            cursor: pointer;
+        }
+
+        .donate-btn {
+            background: var(--secondary-color);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .donate-btn:hover {
+            background: #2980b9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+
+        .donation-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-control[readonly] {
+            background-color: #f0f0f0;
+            cursor: not-allowed;
+        }
+
+        .submit-btn {
+            background: var(--secondary-color);
+            color: white;
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background: #2980b9;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .data-table {
+            margin: 2rem 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .status.completed {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .status.pending {
+            color: var(--secondary-color);
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                left: -100%;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .header {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <nav class="sidebar" id="sidebar">
+            <div class="branding">
+                <h2>FoodBridge</h2>
+                <p>Donor Dashboard</p>
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item" onclick="showSection('dashboard')"><i class="fas fa-home"></i> Dashboard</li>
+                <li class="nav-item" onclick="showSection('donationHistory')"><i class="fas fa-history"></i> Donation History</li>
+                <li class="nav-item" onclick="showSection('profile')"><i class="fas fa-user"></i> Profile</li>
+            </ul>
+
+            <button class="logout-btn" onclick="handleLogout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </nav>
+
+        <main class="main-content">
+            <div class="header">
+                <div style="display: flex; align-items: center;">
+                    <button class="menu-toggle" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 style="margin-left: 1rem;">Welcome, <span id="donorName"></span></h1>
+                </div>
+                <div>
+                    <button class="donate-btn" onclick="showSection('donationForm')">
+                        <i class="fas fa-hand-holding-heart"></i> Make Donation
+                    </button>
+                </div>
+            </div>
+
+            <div id="dashboardSection">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Donations</h3>
+                        <p class="stat-value" id="totalDonations">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Quantity Donated</h3>
+                        <p class="stat-value" id="totalQuantity">0 kg</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Last Donation</h3>
+                        <p class="stat-value" id="lastDonation">N/A</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="donation-form hidden" id="donationFormSection">
+                <h2>New Food Donation</h2>
+                <form id="donationForm" onsubmit="handleDonation(event)">
+                    <div class="form-group">
+                        <label for="donorNameInput">Name</label>
+                        <input type="text" class="form-control" id="donorNameInput" readonly required>
+                    </div>
+                    <div class="form-group">
+                        <label for="foodType">Select Food Type</label>
+                        <select class="form-control" id="foodType" required>
+                            <option value="" disabled selected>Choose Food Item</option>
+                            <option value="Rice">Rice</option>
+                            <option value="Wheat">Wheat</option>
+                            <option value="Canned Goods">Canned Goods</option>
+                            <option value="Fresh Vegetables">Fresh Vegetables</option>
+                            <option value="Packaged Foods">Packaged Foods</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">Quantity (kg)</label>
+                        <input type="number" class="form-control" id="quantity" min="1" step="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pickupAddress">Pickup Address</label>
+                        <textarea class="form-control" id="pickupAddress" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="pickupDate">Pickup Date</label>
+                        <input type="date" class="form-control" id="pickupDate" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Submit Donation</button>
+                    <p id="errorMessage" class="error-message"></p>
+                </form>
+            </div>
+
+            <div class="data-table hidden" id="donationHistorySection">
+                <h2>Recent Donations</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Food Type</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="donationHistory">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="hidden" id="profileSection">
+                <h2>Profile</h2>
+                <button onclick="window.location.href='/profile.html'" style="background-color: #007BFF; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px;">Edit Profile</button>                <!-- <p>Profile information will be displayed here.</p> -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentDonorName = localStorage.getItem('currentDonor') || 'Donor';
+
+        async function fetchDonationHistory() {
+  try {
+    const response = await fetch(`http://localhost:3100/api/donation_history?donorName=${encodeURIComponent(currentDonorName)}`);
+    const data = await response.json();
+    if (data.success) {
+      return data.data;
+    } else {
+      console.error('Failed to fetch donation history:', data.message);
+      return [];
+    }
+  } catch (err) {
+    console.error('Error fetching donation history:', err);
+    return [];
+  }
+}
+
+        async function updateStatistics() {
+            const donations = await fetchDonationHistory();
+            const totalDonations = donations.length;
+            const totalQuantity = donations.reduce((sum, d) => sum + (d.Quantity || 0), 0);
+            const lastDonation = donations.length > 0 ? donations[0].DateOfDonation : 'N/A';
+
+            document.getElementById('totalDonations').textContent = totalDonations;
+            document.getElementById('totalQuantity').textContent = `${totalQuantity} kg`;
+            document.getElementById('lastDonation').textContent = lastDonation;
+        }
+
+        async function updateDonationHistory() {
+            const donations = await fetchDonationHistory();
+            const tbody = document.getElementById('donationHistory');
+            tbody.innerHTML = donations.map(donation => `
+                <tr>
+                    <td>${donation.DateOfDonation}</td>
+                    <td>${donation.FoodItemName}</td>
+                    <td>${donation.Quantity} kg</td>
+                    <td><span class="status ${donation.Status.toLowerCase()}">${donation.Status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        function showSection(sectionId) {
+            document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('donationFormSection').classList.add('hidden');
+            document.getElementById('donationHistorySection').classList.add('hidden');
+            document.getElementById('profileSection').classList.add('hidden');
+
+            document.getElementById(sectionId + 'Section').classList.remove('hidden');
+            document.getElementById('sidebar').classList.remove('active');
+        }
+
+        async function handleDonation(event) {
+            event.preventDefault();
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.style.display = 'none';
+            errorMessage.textContent = '';
+
+            const donorName = document.getElementById('donorNameInput').value;
+            const foodType = document.getElementById('foodType').value;
+            const quantity = parseInt(document.getElementById('quantity').value, 10);
+            const pickupAddress = document.getElementById('pickupAddress').value;
+            const pickupDate = document.getElementById('pickupDate').value;
+
+            // Client-side validation
+            if (!donorName || !foodType || !quantity || !pickupAddress || !pickupDate) {
+                errorMessage.textContent = 'Please fill in all fields.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            if (isNaN(quantity) || quantity <= 0) {
+                errorMessage.textContent = 'Quantity must be a positive number.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            const today = new Date().toISOString().split('T')[0];
+            if (pickupDate < today) {
+                errorMessage.textContent = 'Pickup date cannot be in the past.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            const newDonation = { donorName, foodType, quantity, pickupAddress, date: pickupDate };
+
+            try {
+                const response = await fetch('http://localhost:3100/api/donations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newDonation)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Donation submitted successfully!');
+                    await updateDonationHistory();
+                    await updateStatistics();
+                    showSection('dashboard');
+                    event.target.reset();
+                } else {
+                    errorMessage.textContent = data.message || 'Failed to submit donation.';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error submitting donation:', error);
+                errorMessage.textContent = 'Unable to connect to server. Please try again later.';
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('currentDonor');
+            alert('You have been logged out successfully.');
+            window.location.href = '/index.html';
+        }
+
+        // Initialize
+        document.getElementById('donorName').textContent = currentDonorName;
+        document.getElementById('donorNameInput').value = currentDonorName;
+        updateDonationHistory();
+        updateStatistics();
+        showSection('dashboard');
+
+        // Set min date for pickupDate to today
+        document.getElementById('pickupDate').setAttribute('min', new Date().toISOString().split('T')[0]);
+    </script>
+</body>
+</html>

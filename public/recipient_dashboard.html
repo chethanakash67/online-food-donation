@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipient Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <style>
+    #menu-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 100;
+      background-color: #2c3e50;
+      color: white;
+      border: none;
+      padding: 10px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -250px;
+      width: 250px;
+      height: 100%;
+      background-color: #2c3e50;
+      color: white;
+      padding: 20px;
+      transition: left 0.3s ease-in-out;
+    }
+    .sidebar.show {
+      left: 0;
+    }
+    .content {
+      margin-left: 0;
+      padding: 60px 20px 20px 20px;
+      background-color: #ecf0f1;
+      min-height: 100vh;
+      width: 100%;
+      transition: margin-left 0.3s ease-in-out;
+    }
+    .content.shift {
+      margin-left: 250px;
+    }
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    .star {
+      font-size: 24px;
+      cursor: pointer;
+      color: #ddd;
+      margin-right: 5px;
+    }
+    .star.selected {
+      color: #f5b301;
+    }
+    .star.hovered {
+      color: #f5b301;
+    }
+    @media (max-width: 768px) {
+      #menu-btn {
+        top: 15px;
+        left: 15px;
+      }
+      .content {
+        padding-top: 50px;
+      }
+    }
+  </style>
+</head>
+<body class="m-0 p-0">
+  <button id="menu-btn">☰</button>
+  <div id="sidebar" class="sidebar">
+    <h1 class="text-xl font-bold mb-6">FoodBridge</h1>
+    <h2 class="text-lg mb-6">Recipient Dashboard</h2>
+    <ul class="space-y-4">
+      <li><a href="#" onclick="event.preventDefault(); showSection('dashboard')" class="flex items-center"><span class="mr-2">🏠</span> Dashboard</a></li>
+      <li><a href="#" onclick="event.preventDefault(); showSection('donations')" class="flex items-center"><span class="mr-2">📋</span> Received Donations</a></li>
+      <li><a href="#" onclick="event.preventDefault(); showSection('feedback')" class="flex items-center"><span class="mr-2">✍️</span> Feedback</a></li>
+      <li><a href="#" onclick="event.preventDefault(); showSection('notifications')" class="flex items-center"><span class="mr-2">🔔</span> Notifications</a></li>
+      <li class="mt-10"><button onclick="logout()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full">Logout</button></li>
+    </ul>
+  </div>
+  <div id="content" class="content">
+    <div id="dashboard" class="section active">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold">Welcome, <span id="welcome-name"></span></h2>
+        <button id="request-donation-btn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Request Donation</button>
+      </div>
+      <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-bold">Total Donations</h3>
+          <p id="totalDonations">0</p>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-bold">Total Quantity Received</h3>
+          <p id="totalQuantity">0 kg</p>
+        </div>
+        <div class="bg-white p-4 rounded shadow">
+          <h3 class="font-bold">Last Donation</h3>
+          <p id="lastDonation">N/A</p>
+        </div>
+      </div>
+      <div id="request-container" class="hidden">
+        <div id="request-form" class="bg-white p-4 rounded-lg shadow mb-6">
+          <h2 class="text-2xl font-bold mb-4">Request Donation</h2>
+          <form onsubmit="submitRequest(event)">
+            <div class="mb-4">
+              <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+              <input type="text" placeholder="Enter a valid donor name: " id="name" name="name" class="mt-1 p-2 w-full border rounded-md" required>
+            </div>
+            <div class="mb-4">
+              <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+              <input type="tel" id="phone" name="phone" class="mt-1 p-2 w-full border rounded-md" required>
+            </div>
+            <div class="mb-4">
+              <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
+              <input type="text" id="location" name="location" class="mt-1 p-2 w-full border rounded-md" required>
+            </div>
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Submit Request</button>
+          </form>
+        </div>
+        <div id="request-status" class="text-green-500 hidden">Your donation request has been sent to volunteers.</div>
+      </div>
+    </div>
+    <div id="donations" class="section">
+      <h2 class="text-2xl font-bold mb-4">Received Donations</h2>
+      <div class="bg-white p-4 rounded-lg shadow mb-6">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-gray-200">
+              <th class="p-2">Donor</th>
+              <th class="p-2">Food Item</th>
+              <th class="p-2">Category</th>
+              <th class="p-2">Date</th>
+              <th class="p-2">Status</th>
+            </tr>
+          </thead>
+          <tbody id="donationTable">
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div id="feedback" class="section">
+      <h2 class="text-2xl font-bold mb-4">Submit Feedback</h2>
+      <div class="bg-white p-4 rounded-lg shadow mb-6">
+        <form onsubmit="submitFeedback(event)">
+          <div class="mb-4">
+            <label for="volunteer-name" class="block text-sm font-medium text-gray-700">Volunteer Name</label>
+            <input type="text" id="volunteer-name" name="volunteer-name" class="mt-1 p-2 w-full border rounded-md" required>
+          </div>
+          <div class="mb-4">
+            <label for="feedback-text" class="block text-sm font-medium text-gray-700">Feedback</label>
+            <textarea id="feedback-text" name="feedback-text" class="mt-1 p-2 w-full border rounded-md" required></textarea>
+          </div>
+          <div class="mb-4">
+            <label for="rating" class="block text-sm font-medium text-gray-700">Rating</label>
+            <div class="star-rating">
+              <span class="star fa fa-star" onclick="setRating(1)" onmouseover="hoverRating(1)" onmouseout="resetHover()"></span>
+              <span class="star fa fa-star" onclick="setRating(2)" onmouseover="hoverRating(2)" onmouseout="resetHover()"></span>
+              <span class="star fa fa-star" onclick="setRating(3)" onmouseover="hoverRating(3)" onmouseout="resetHover()"></span>
+              <span class="star fa fa-star" onclick="setRating(4)" onmouseover="hoverRating(4)" onmouseout="resetHover()"></span>
+              <span class="star fa fa-star" onclick="setRating(5)" onmouseover="hoverRating(5)" onmouseout="resetHover()"></span>
+            </div>
+            <p id="rating-output" class="mt-2">Rating: 0/5</p>
+          </div>
+          <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Submit</button>
+        </form>
+      </div>
+    </div>
+    <div id="notifications" class="section">
+      <h2 class="text-2xl font-bold mb-4">Notifications</h2>
+      <div class="bg-white p-4 rounded-lg shadow">
+        <ul id="notificationList" class="list-disc pl-5">
+        </ul>
+      </div>
+    </div>
+  </div>
+  <script>
+    const menuBtn = document.getElementById('menu-btn');
+    const sidebar = document.getElementById('sidebar');
+    const content = document.getElementById('content');
+    let currentRecipient = localStorage.getItem('currentRecipient') || 'Recipient';
+
+    menuBtn.addEventListener('click', function() {
+      sidebar.classList.toggle('show');
+      content.classList.toggle('shift');
+    });
+
+    function showSection(sectionId) {
+      const sections = document.querySelectorAll('.section');
+      sections.forEach(section => {
+        section.classList.remove('active');
+        if (section.id === sectionId) {
+          section.classList.add('active');
+        }
+      });
+    }
+
+    function logout() {
+      localStorage.removeItem('currentRecipient');
+      alert('Logged out successfully!');
+      window.location.href = 'index.html';
+    }
+
+    async function loadDonations() {
+      try {
+        const response = await fetch('http://localhost:3100/api/received_donations');
+        const data = await response.json();
+        if (data.success) {
+          const table = document.getElementById('donationTable');
+          table.innerHTML = data.data.map(d => `
+            <tr>
+              <td class="p-2">${d.DonorID}</td>
+              <td class="p-2">${d.FoodItemName}</td>
+              <td class="p-2">${d.Veg || d.NonVeg}</td>
+              <td class="p-2">${d.DateOfDonation}</td>
+              <td class="p-2 ${d.Status === 'Completed' ? 'text-green-500' : 'text-yellow-500'}">${d.Status}</td>
+            </tr>
+          `).join('');
+          document.getElementById('totalDonations').textContent = data.data.length;
+          document.getElementById('totalQuantity').textContent = `${data.data.reduce((sum, d) => sum + d.Quantity, 0)} kg`;
+          document.getElementById('lastDonation').textContent = data.data.length > 0 ? data.data[0].DateOfDonation : 'N/A';
+        } else {
+          alert(data.message || 'Failed to load donations');
+        }
+      } catch (err) {
+        console.error('Error loading donations:', err);
+        alert('Unable to connect to server.');
+      }
+    }
+
+    async function loadNotifications() {
+      try {
+        const response = await fetch('http://localhost:3100/api/notifications');
+        const data = await response.json();
+        if (data.success) {
+          const list = document.getElementById('notificationList');
+          list.innerHTML = data.data.map(n => `<li>${n.Status} on ${n.MessageDate}</li>`).join('');
+        } else {
+          alert(data.message || 'Failed to load notifications');
+        }
+      } catch (err) {
+        console.error('Error loading notifications:', err);
+        alert('Unable to connect to server.');
+      }
+    }
+
+    async function submitFeedback(event) {
+      event.preventDefault();
+      const volunteerName = document.getElementById('volunteer-name').value;
+      const feedbackText = document.getElementById('feedback-text').value;
+      const rating = currentRating;
+      if (!volunteerName || !feedbackText || rating === 0) {
+        alert('Please fill in all fields and select a rating.');
+        return;
+      }
+      try {
+        const response = await fetch('http://localhost:3100/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rating, comments: `${volunteerName}: ${feedbackText}` }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          alert('Feedback submitted successfully!');
+          event.target.reset();
+          setRating(0);
+        } else {
+          alert(data.message || 'Failed to submit feedback');
+        }
+      } catch (err) {
+        console.error('Error submitting feedback:', err);
+        alert('Unable to connect to server.');
+      }
+    }
+
+    async function submitRequest(event) {
+      event.preventDefault();
+      const name = document.getElementById('name').value;
+      const phone = document.getElementById('phone').value;
+      const location = document.getElementById('location').value;
+      try {
+        const response = await fetch('http://localhost:3100/api/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone, location }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('request-form').classList.add('hidden');
+          document.getElementById('request-status').classList.remove('hidden');
+        } else {
+          alert(data.message || 'Failed to submit request');
+        }
+      } catch (err) {
+        console.error('Error submitting request:', err);
+        alert('Unable to connect to server.');
+      }
+    }
+
+    let currentRating = 0;
+    let hoverRatingValue = 0;
+
+    function setRating(rating) {
+      currentRating = rating;
+      updateStars();
+      document.getElementById('rating-output').textContent = `Rating: ${rating}/5`;
+    }
+
+    function hoverRating(rating) {
+      hoverRatingValue = rating;
+      updateStars();
+    }
+
+    function resetHover() {
+      hoverRatingValue = 0;
+      updateStars();
+    }
+
+    function updateStars() {
+      const stars = document.querySelectorAll('.star');
+      stars.forEach((star, index) => {
+        star.classList.remove('selected', 'hovered');
+        if (index < (hoverRatingValue || currentRating)) {
+          if (hoverRatingValue > 0) {
+            star.classList.add('hovered');
+          } else {
+            star.classList.add('selected');
+          }
+        }
+      });
+    }
+
+    document.getElementById('welcome-name').textContent = currentRecipient;
+    document.getElementById('name').value = currentRecipient;
+    document.getElementById('request-donation-btn').addEventListener('click', function() {
+      document.getElementById('request-container').classList.remove('hidden');
+    });
+
+    loadDonations();
+    loadNotifications();
+    showSection('dashboard');
+  </script>
+</body>
+</html>

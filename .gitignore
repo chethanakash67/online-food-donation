@@ -1,0 +1,21 @@
+# Ignore node_modules and .vscode folders
+node_modules/
+.vscode/
+
+# Ignore logs
+*.log
+npm-debug.log*
+
+# Ignore environment files
+.env
+.env.local
+.env.*.local
+
+# Ignore OS specific files
+.DS_Store
+Thumbs.db
+
+# Ignore build folders if any
+/dist
+/build
+.vercel

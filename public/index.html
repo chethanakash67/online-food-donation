@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodBridge - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f5f6fa;
+        }
+        .role-card {
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .role-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .role-card.active {
+            border: 2px solid #3498db;
+            background-color: #e6f3ff;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-3xl font-bold text-center mb-6">FoodBridge</h1>
+        <div id="roleSelection" class="mb-6">
+            <h2 class="text-xl font-semibold text-center mb-4">Select Your Role</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="role-card bg-gray-100 p-4 rounded-lg text-center" onclick="selectRole('donor')">
+                    <i class="fas fa-hand-holding-heart text-2xl mb-2"></i>
+                    <p>Donor</p>
+                </div>
+                <div class="role-card bg-gray-100 p-4 rounded-lg text-center" onclick="selectRole('recipient')">
+                    <i class="fas fa-users text-2xl mb-2"></i>
+                    <p>Recipient</p>
+                </div>
+                <div class="role-card bg-gray-100 p-4 rounded-lg text-center" onclick="selectRole('volunteer')">
+                    <i class="fas fa-hands-helping text-2xl mb-2"></i>
+                    <p>Volunteer</p>
+                </div>
+                <div class="role-card bg-gray-100 p-4 rounded-lg text-center" onclick="selectRole('admin')">
+                    <i class="fas fa-user-shield text-2xl mb-2"></i>
+                    <p>Admin</p>
+                </div>
+            </div>
+        </div>
+        <div id="loginForm" class="hidden">
+            <h2 class="text-xl font-semibold text-center mb-4">Login</h2>
+            <form onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="username" name="username" class="mt-1 p-2 w-full border rounded-md" required>
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" name="password" class="mt-1 p-2 w-full border rounded-md" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600">Login</button>
+            </form>
+            <p class="mt-4 text-center">
+                Don't have an account? <a href="/signup.html" class="text-blue-500 hover:underline">Sign Up</a>
+            </p>
+            <p class="mt-2 text-center">
+                <a href="/" class="text-blue-500 hover:underline">Back to Home</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Clear currentRole on page load to show role selection
+        localStorage.removeItem('currentRole');
+        let currentRole = '';
+
+        function selectRole(role) {
+            currentRole = role;
+            localStorage.setItem('currentRole', role);
+            document.querySelectorAll('.role-card').forEach(card => card.classList.remove('active'));
+            document.querySelector(`.role-card[onclick="selectRole('${role}')"]`).classList.add('active');
+            document.getElementById('roleSelection').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!currentRole) {
+                alert('Please select a role.');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3100/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role: currentRole }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    if (currentRole === 'donor') {
+                        localStorage.setItem('currentDonor', username);
+                    } else if (currentRole === 'recipient') {
+                        localStorage.setItem('currentRecipient', username);
+                    } else if (currentRole === 'volunteer') {
+                        localStorage.setItem('currentVolunteer', username);
+                    }
+                    window.location.href = data.redirectUrl;
+                } else {
+                    alert(data.message || 'Login failed. Please try again.');
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                alert('Unable to connect to server. Please try again later.');
+            }
+        }
+    </script>
+</body>
+</html>

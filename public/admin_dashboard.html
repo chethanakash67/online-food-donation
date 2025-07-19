@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | FoodBridge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <aside class="w-64 bg-gray-800 text-white p-6">
+            <h1 class="text-2xl font-bold mb-6">FoodBridge</h1>
+            <h2 class="text-lg mb-6">Admin Dashboard</h2>
+            <ul class="space-y-4">
+                <li><a href="#" onclick="showSection('dashboard')" class="flex items-center"><i class="fas fa-home mr-2"></i> Dashboard</a></li>
+                <li><a href="#" onclick="showSection('donors')" class="flex items-center"><i class="fas fa-user mr-2"></i> Donors</a></li>
+                <li><a href="#" onclick="showSection('recipients')" class="flex items-center"><i class="fas fa-users mr-2"></i> Recipients</a></li>
+                <li><a href="#" onclick="showSection('donations')" class="flex items-center"><i class="fas fa-hand-holding-heart mr-2"></i> Donations</a></li>
+                <li class="mt-10"><button onclick="logout()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full">Logout</button></li>
+            </ul>
+        </aside>
+        <main class="flex-1 p-6">
+            <div id="dashboard" class="section">
+                <h2 class="text-2xl font-bold mb-4">Dashboard</h2>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-bold">Total Donors</h3>
+                        <p id="totalDonors">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-bold">Total Recipients</h3>
+                        <p id="totalRecipients">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h3 class="font-bold">Total Donations</h3>
+                        <p id="totalDonations">0</p>
+                    </div>
+                </div>
+            </div>
+            <div id="donors" class="section hidden">
+                <h2 class="text-2xl font-bold mb-4">Donors</h2>
+                <table class="w-full bg-white rounded shadow">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="p-2">ID</th>
+                            <th class="p-2">Name</th>
+                            <th class="p-2">Phone</th>
+                            <th class="p-2">Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="donorsTable"></tbody>
+                </table>
+            </div>
+            <div id="recipients" class="section hidden">
+                <h2 class="text-2xl font-bold mb-4">Recipients</h2>
+                <table class="w-full bg-white rounded shadow">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="p-2">ID</th>
+                            <th class="p-2">Name</th>
+                            <th class="p-2">Phone</th>
+                            <th class="p-2">Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recipientsTable"></tbody>
+                </table>
+            </div>
+            <div id="donations" class="section hidden">
+                <h2 class="text-2xl font-bold mb-4">Donations</h2>
+                <table class="w-full bg-white rounded shadow">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="p-2">ID</th>
+                            <th class="p-2">Date</th>
+                            <th class="p-2">Food Item</th>
+                            <th class="p-2">Quantity</th>
+                            <th class="p-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="donationsTable"></tbody>
+                </table>
+            </div>
+            <div>
+                <h3>Pending Donation Requests</h3>
+                <table id="adminPendingRequests">
+                    <thead><tr><th>Recipient</th><th>Food Item</th><th>Quantity</th><th>Status</th><th>Requested On</th><th>Action</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => section.classList.add('hidden'));
+            document.getElementById(sectionId).classList.remove('hidden');
+        }
+
+        function logout() {
+            alert('Logged out');
+            window.location.href = 'index.html';
+        }
+
+        async function loadDashboard() {
+            try {
+                const [donorsRes, recipientsRes, donationsRes] = await Promise.all([
+                    fetch('http://localhost:3100/api/donors'),
+                    fetch('http://localhost:3100/api/recipients'),
+                    fetch('http://localhost:3100/api/donation_history'),
+                ]);
+                const [donorsData, recipientsData, donationsData] = await Promise.all([
+                    donorsRes.json(),
+                    recipientsRes.json(),
+                    donationsRes.json(),
+                ]);
+
+                if (donorsData.success) {
+                    document.getElementById('totalDonors').textContent = donorsData.data.length;
+                    const table = document.getElementById('donorsTable');
+                    table.innerHTML = donorsData.data.map(d => `
+                        <tr>
+                            <td class="p-2">${d.DonorID}</td>
+                            <td class="p-2">${d.DonorName}</td>
+                            <td class="p-2">${d.PhoneNumber}</td>
+                            <td class="p-2">${d.Address}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                if (recipientsData.success) {
+                    document.getElementById('totalRecipients').textContent = recipientsData.data.length;
+                    const table = document.getElementById('recipientsTable');
+                    table.innerHTML = recipientsData.data.map(r => `
+                        <tr>
+                            <td class="p-2">${r.RecipientID}</td>
+                            <td class="p-2">${r.Name}</td>
+                            <td class="p-2">${r.PhoneNumber}</td>
+                            <td class="p-2">${r.Address}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                if (donationsData.success) {
+                    document.getElementById('totalDonations').textContent = donationsData.data.length;
+                    const table = document.getElementById('donationsTable');
+                    table.innerHTML = donationsData.data.map(d => `
+                        <tr>
+                            <td class="p-2">${d.DonationID}</td>
+                            <td class="p-2">${d.DateOfDonation}</td>
+                            <td class="p-2">${d.FoodItemName}</td>
+                            <td class="p-2">${d.Quantity} kg</td>
+                            <td class="p-2">${d.Status}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Error loading dashboard:', err);
+                alert('Unable to connect to server.');
+            }
+            async function fetchPendingRequests() {
+        const response = await fetch('http://localhost:3100/api/all_pending_requests');
+        const data = await response.json();
+        if (data.success) {
+            const table = document.getElementById('adminPendingRequests').getElementsByTagName('tbody')[0];
+            table.innerHTML = '';
+            data.data.forEach(request => {
+                const row = table.insertRow();
+                row.insertCell(0).textContent = request.RecipientName;
+                row.insertCell(1).textContent = request.FoodItemName;
+                row.insertCell(2).textContent = request.Quantity + ' kg';
+                row.insertCell(3).textContent = request.Status;
+                row.insertCell(4).textContent = new Date(request.RequestDate).toLocaleString();
+                const actionCell = row.insertCell(5);
+                if (request.Status === 'pending' || request.Status === 'approved') {
+                    const button = document.createElement('button');
+                    button.textContent = 'Mark as Received';
+                    button.onclick = () => markAsReceived(request.RequestID, request.RecipientName);
+                    actionCell.appendChild(button);
+                }
+            });
+        }
+    }
+
+    async function markAsReceived(requestId, recipientName) {
+        const response = await fetch('http://localhost:3100/api/mark_received', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestId, recipientName })
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert('Donation marked as received!');
+            fetchPendingRequests();
+        } else {
+            alert('Failed: ' + data.message);
+        }
+    }
+
+    window.onload = fetchPendingRequests;
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
+</body>
+</html>
